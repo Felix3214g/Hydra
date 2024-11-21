@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #ddd;
+        }
+        .tab {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 1rem;
+            color: #666;
+        }
+        .tab.active {
+            color: #007bff;
+            border-bottom: 2px solid #007bff;
+            margin-bottom: -2px;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .message {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .error {
+            background-color: #ffe6e6;
+            color: #dc3545;
+        }
+        .success {
+            background-color: #e6ffe6;
+            color: #28a745;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .timer {
+            text-align: center;
+            margin-top: 1rem;
+            font-weight: bold;
+            color: #dc3545;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .modal-buttons {
+            margin-top: 1rem;
+        }
+        .modal button {
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('login')">Login</button>
+            <button class="tab" onclick="switchTab('credentials')">Manage Credentials</button>
+        </div>
+
+        <div id="loginTab" class="tab-content active">
+            <h2 style="text-align: center; margin-bottom: 2rem;">Login</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" id="loginButton">Login</button>
+                <div id="messageLogin" class="message" style="display: none;"></div>
+                <div id="timer" class="timer" style="display: none;"></div>
+            </form>
+        </div>
+
+        <div id="credentialsTab" class="tab-content">
+            <h2 style="text-align: center; margin-bottom: 2rem;">Manage Credentials</h2>
+            <form id="credentialsForm">
+                <div class="form-group">
+                    <label for="newUsername">New Username</label>
+                    <input type="text" id="newUsername" name="newUsername" required>
+                </div>
+                <div class="form-group">
+                    <label for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" name="newPassword" required>
+                </div>
+                <button type="submit">Update Credentials</button>
+                <div id="messageCredentials" class="message" style="display: none;"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <h2 style="color: #28a745;">Login Successful! 🎉</h2>
+            <p>Welcome back, <span id="welcomeUsername"></span>!</p>
+            <p>You have successfully logged into your account.</p>
+            <button onclick="closeSuccessModal()" style="background-color: #28a745;">Continue</button>
+        </div>
+    </div>
+
+    <!-- Lockout Modal -->
+    <div id="lockoutModal" class="modal">
+        <div class="modal-content">
+            <h2 style="color: #dc3545;">Account Locked! 🔒</h2>
+            <p>For security reasons, your account has been temporarily locked due to multiple failed login attempts.</p>
+            <p id="lockoutTimer" style="font-weight: bold; color: #dc3545;"></p>
+            <button onclick="closeLockoutModal()" style="background-color: #dc3545;">OK</button>
+        </div>
+    </div>
+
+    <script>
+        let credentials = {
+            username: 'felixderler21',
+            password: 'Felix123ghg!'
+        };
+        
+        let failedAttempts = 0;
+        const maxAttempts = 3;
+        let lockoutTime = 30; // seconds
+        let lockoutTimer;
+        let isLocked = false;
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function showMessage(elementId, message, type) {
+            const messageElement = document.getElementById(elementId);
+            messageElement.textContent = message;
+            messageElement.className = 'message ' + type;
+            messageElement.style.display = 'block';
+        }
+
+        function showSuccessModal(username) {
+            document.getElementById('welcomeUsername').textContent = username;
+            document.getElementById('successModal').style.display = 'flex';
+        }
+
+        function closeSuccessModal() {
+            document.getElementById('successModal').style.display = 'none';
+            document.getElementById('loginForm').reset();
+        }
+
+        function showLockoutModal() {
+            document.getElementById('lockoutModal').style.display = 'flex';
+        }
+
+        function closeLockoutModal() {
+            document.getElementById('lockoutModal').style.display = 'none';
+        }
+
+        function startLockoutTimer() {
+            const timerElement = document.getElementById('lockoutTimer');
+            const loginButton = document.getElementById('loginButton');
+            let timeLeft = lockoutTime;
+            
+            isLocked = true;
+            loginButton.disabled = true;
+            showLockoutModal();
+            
+            lockoutTimer = setInterval(() => {
+                timerElement.textContent = `Time remaining: ${timeLeft} seconds`;
+                timeLeft--;
+                
+                if (timeLeft < 0) {
+                    clearInterval(lockoutTimer);
+                    isLocked = false;
+                    failedAttempts = 0;
+                    loginButton.disabled = false;
+                    closeLockoutModal();
+                    showMessage('messageLogin', 'Account unlocked. You can try again.', 'success');
+                }
+            }, 1000);
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (isLocked) {
+                return;
+            }
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (username === credentials.username && password === credentials.password) {
+                failedAttempts = 0;
+                showSuccessModal(username);
+            } else {
+                failedAttempts++;
+                
+                if (failedAttempts >= maxAttempts) {
+                    startLockoutTimer();
+                } else {
+                    showMessage('messageLogin', 'Invalid username or password.', 'error');
+                }
+            }
+        });
+
+        document.getElementById('credentialsForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const newUsername = document.getElementById('newUsername').value;
+            const newPassword = document.getElementById('newPassword').value;
+
+            credentials.username = newUsername;
+            credentials.password = newPassword;
+
+            showMessage('messageCredentials', 'Credentials updated successfully.', 'success');
+            e.target.reset();
+        });
+    </script>
+</body>
+</html>
